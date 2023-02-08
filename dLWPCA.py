@@ -24,7 +24,7 @@ plt.show()
 
 ## wPCA
 
-def plot_results(ThisPCA, X, weights=None, Xtrue=None, ncomp=2):
+def plot_results(ThisPCA, X, weights=None, Xtrue=None, ncomp=3):
     # Compute the standard/weighted PCA
     if weights is None:
         kwds = {}
@@ -72,8 +72,8 @@ weights[np.isnan(RV2)] = 0
 
 ## RUN !
 
-eigen2vectors = plot_results(WPCA, RV2.T, weights=weights.T, ncomp=2)
+eigen2vectors = plot_results(WPCA, RV2.T, weights=weights.T, ncomp=4)
 
 ## Save result
 
-np.save('/home/paul/Bureau/IRAP/TablesAU_MIC/2firstcomponent.npy', eigen2vectors.components_[:2])
+np.save('/home/paul/Bureau/IRAP/TablesAU_MIC/2firstcomponent.npy', eigen2vectors.components_[:4])

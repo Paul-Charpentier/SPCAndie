@@ -11,7 +11,7 @@ from tqdm import tqdm
 from wpca import PCA, WPCA, EMPCA
 
 ## Load data
-path = '/home/paul/Bureau/SPIRou_Data/AU_MIC/AUMIC_AUMIC'
+path = '/media/paul/One Touch2/SPIRou_Data/AU_MIC/AUMIC_AUMIC'
 os.chdir(path)
 
 file_list = []
@@ -34,7 +34,7 @@ ALL_d2v = np.array(ALL_d2v)
 ALL_sd2v = np.array(ALL_sd2v)
 times = np.array(times)
 
-p1 = fits.open('/home/paul/Bureau/SPIRou_Data/AU_MIC/AUMIC_AUMIC/2812126o_pp_e2dsff_tcorr_AB_AUMIC_AUMIC_lbl.fits')
+p1 = fits.open('/media/paul/One Touch2/SPIRou_Data/AU_MIC/AUMIC_AUMIC/2812126o_pp_e2dsff_tcorr_AB_AUMIC_AUMIC_lbl.fits')
 
 w1 = (p1[1].data['WAVE_START']+p1[1].data['WAVE_END'])/2.
 
@@ -120,28 +120,28 @@ sd2vbinn = np.array(sd2vbinn)
 
 ## Normalization
 #
-def Mornalize(X, dX):
-    X_norm = []
-    X_std = []
-    for i in tqdm(range(X.shape[0])):
-        avg_dv = np.nanmean([X[i][j] for j in range(X.shape[1])])
-        std_dv = np.nanstd([X[i][j] for j in range(X.shape[1])])
-        Y = []
-        stdY = []
-        for j in range(X.shape[1]):
-            morn = (X[i][j] - avg_dv)/std_dv
-            std = dX[i][j]/std_dv
-            Y.append(morn)
-            stdY.append(std)
-        X_norm.append(Y)
-        X_std.append(stdY)
-    return(np.array(X_norm), np.array(X_std))
-
-RV2, dRV2 = Mornalize(d2vbinn, sd2vbinn)
+# def Mornalize(X, dX):
+#     X_norm = []
+#     X_std = []
+#     for i in tqdm(range(X.shape[0])):
+#         avg_dv = np.nanmean([X[i][j] for j in range(X.shape[1])])
+#         std_dv = np.nanstd([X[i][j] for j in range(X.shape[1])])
+#         Y = []
+#         stdY = []
+#         for j in range(X.shape[1]):
+#             morn = (X[i][j] - avg_dv)/std_dv
+#             std = dX[i][j]/std_dv
+#             Y.append(morn)
+#             stdY.append(std)
+#         X_norm.append(Y)
+#         X_std.append(stdY)
+#     return(np.array(X_norm), np.array(X_std))
+#
+# RV2, dRV2 = Mornalize(d2vbinn, sd2vbinn)
 
 ## Saves
 
-np.save('/home/paul/Bureau/IRAP/TablesAU_MIC/readyforwPCA_d2vsd2v.npy', [RV2, dRV2])
+np.save('/home/paul/Bureau/IRAP/TablesAU_MIC/readyforwPCA_d2vsd2v.npy', [d2vbinn, sd2vbinn])
 np.save('/home/paul/Bureau/IRAP/TablesAU_MIC/readyforwPCA_linelist.npy', w_used)
 np.save('/home/paul/Bureau/IRAP/TablesAU_MIC/readyforwPCA_epoc.npy', tbinn)
 
