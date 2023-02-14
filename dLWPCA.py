@@ -19,12 +19,12 @@ times = np.load('/home/paul/Bureau/IRAP/TablesAU_MIC/readyforwPCA_epoc.npy')
 ## Plot
 
 for i in range(10):
-    plt.errorbar(times, RV2.T[i], yerr=dRV2.T[i], fmt='.')
+    plt.errorbar(times[:-1], RV2.T[i][:-1], yerr=dRV2.T[i][:-1], fmt='.')
 plt.show()
 
 ## wPCA
 
-def plot_results(ThisPCA, X, weights=None, Xtrue=None, ncomp=3):
+def plot_results(ThisPCA, X, weights=None, Xtrue=None, ncomp=2):
     # Compute the standard/weighted PCA
     if weights is None:
         kwds = {}
@@ -72,7 +72,7 @@ weights[np.isnan(RV2)] = 0
 
 ## RUN !
 
-eigen2vectors = plot_results(WPCA, RV2.T, weights=weights.T, ncomp=4)
+eigen2vectors = plot_results(WPCA, RV2[:-1].T, weights=weights[:-1].T, ncomp=4)
 
 ## Save result
 
