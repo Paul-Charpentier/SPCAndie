@@ -11,4 +11,4 @@ This repository is organized this way :
   - `GwPCA.py` is about to analyze the 2 first component of the resulting wPCA. In particular it uses a Gaussian Processes regresion to do so. And cross correlate it to magnetic field data from ZeeTurbo. 
 
 
-Note that there is dependencies on my owm custom tedi GP (https://github.com/Paul-Charpentier/tediGP)
+Note that there is dependencies on custom tedi GP (https://github.com/jdavidrcamacho/tedi)
