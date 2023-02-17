@@ -19,7 +19,7 @@ times = np.load('/home/paul/Bureau/IRAP/TablesAU_MIC/readyforwPCA_epoc.npy')
 ## Plot
 
 for i in range(10):
-    plt.errorbar(times[:-1], RV2.T[i][:-1], yerr=dRV2.T[i][:-1], fmt='.')
+    plt.errorbar(times, RV2.T[i], yerr=dRV2.T[i], fmt='.')
 plt.show()
 
 ## wPCA
@@ -72,7 +72,11 @@ weights[np.isnan(RV2)] = 0
 
 ## RUN !
 
-eigen2vectors = plot_results(WPCA, RV2[:-1].T, weights=weights[:-1].T, ncomp=4)
+eigen2vectors = plot_results(WPCA, RV2.T, weights=weights.T, ncomp=4)
+
+## Check Orthogonalization
+
+print([np.dot(eigen2vectors.components_[0], eigen2vectors.components_[i]) for i in range(4)])
 
 ## Save result
 
