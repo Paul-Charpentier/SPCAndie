@@ -11,6 +11,8 @@ from tqdm import tqdm
 from wpca import PCA, WPCA, EMPCA
 from scipy.stats import median_abs_deviation
 from astropy.timeseries import LombScargle
+from hampel import hampel
+import pandas as pd
 
 ## Load data
 path = '/media/paul/One Touch2/SPIRou_Data/AU_MIC/AUMIC_AUMIC' #### PATH TO CHANGE ####
@@ -36,7 +38,7 @@ ALL_d2v = np.array(ALL_d2v)
 ALL_sd2v = np.array(ALL_sd2v)
 times = np.array(times)
 
-p1 = fits.open('/media/paul/One Touch2/SPIRou_Data/AU_MIC/AUMIC_AUMIC/2812126o_pp_e2dsff_tcorr_AB_AUMIC_AUMIC_lbl.fits') #### PATH TO CHANGE ####
+p1 = fits.open('/media/paul/One Touch2/SPIRou_Data/AU_MIC/AUMIC_AUMIC/2425809o_pp_e2dsff_tcorr_AB_AUMIC_AUMIC_lbl.fits') #### PATH TO CHANGE ####
 
 w1 = (p1[1].data['WAVE_START']+p1[1].data['WAVE_END'])/2.
 
@@ -143,7 +145,7 @@ for idx in tqdm(range(ALL_d2v.shape[1])):
     sd2vbinn.append(sd2vtemp)
 tbinn, d2vbinn, sd2vbinn = np.array(ttemp), np.array(d2vbinn).T, np.array(sd2vbinn).T
 
-## Remove Outliers
+## Pre-Remove Outliers
 
 print('Outliers removal...')
 plt.figure(0)
@@ -151,7 +153,8 @@ stdbinn = []
 for t in range(len(tbinn)):
     stdbinn.append(np.nanstd(d2vbinn[t]))
 plt.plot(tbinn, stdbinn, 'ko')
-plt.axhline(y=1e7, c='r')
+m, s = np.mean(stdbinn), np.std(stdbinn)
+plt.axhline(y=m+3*s, c='r')
 plt.show()
 
 def remove_outliers(T, D2V, sD2V, threshold):
@@ -165,9 +168,87 @@ def remove_outliers(T, D2V, sD2V, threshold):
         i += 1
     return(tuse)
 
-tused = remove_outliers(tbinn, d2vbinn, sd2vbinn, 1e7)
+tused = remove_outliers(tbinn, d2vbinn, sd2vbinn, m+3*s)
 
 tbinn, d2vbinn, sd2vbinn = tbinn[tused], d2vbinn[tused], sd2vbinn[tused]
+
+## Remove Outliers
+
+def odd_ratio_mean(value, err, odd_ratio = 1e-4, nmax = 10):
+    #
+    # Provide values and corresponding errors and compute a
+    # weighted mean
+    #
+    #
+    # odd_bad -> probability that the point is bad
+    #
+    # nmax -> number of iterations
+    keep = np.isfinite(value)*np.isfinite(err)
+    if np.sum(keep) == 0:
+        return np.nan,np.nan
+
+    value = value[keep]
+    err = err[keep]
+    guess = np.nanmedian(value)
+    nite = 0
+    while (nite < nmax):
+        nsig = (value-guess)/err
+        gg = np.exp(-0.5*nsig**2)
+        odd_bad = odd_ratio/(gg+odd_ratio)
+        odd_good = 1-odd_bad
+        w = odd_good/err**2
+        guess = np.nansum(value*w)/np.nansum(w)
+        nite+=1
+
+    bulk_error = np.sqrt(1/np.nansum(odd_good/err**2))
+    return guess,bulk_error
+
+W, dW = [],[]
+for t in tqdm(range(len(tbinn))):
+    wt, dwt = odd_ratio_mean(d2vbinn[t], sd2vbinn[t])
+    W.append(wt)
+    dW.append(dwt)
+
+W, dW = np.array(W), np.array(dW)
+
+
+
+fig, ax = plt.subplots(1, 2, figsize=(16, 6))
+ax[0].errorbar(tbinn, W, yerr=dW, fmt='r.', label='outliers')
+
+frequency, power = LombScargle(tbinn, W).autopower()
+ax[1].plot(1/frequency, power, 'r')
+ax[1].set_ylabel("power")
+ax[1].set_xscale('log')
+ls = LombScargle(tbinn, W)
+fap = ls.false_alarm_level(0.1)
+ax[1].axhline(fap, linestyle='-', color='k')
+fap = ls.false_alarm_level(0.01)
+ax[1].axhline(fap, linestyle='--', color='k')
+fap = ls.false_alarm_level(0.001)
+ax[1].axhline(fap, linestyle=':', color='k')
+
+
+outlier_ind = hampel(pd.Series(np.copy(W)))
+tused = []
+for t in range(len(tbinn)):
+    if t in outlier_ind:
+        tused.append(False)
+    else :
+        tused.append(True)
+
+tbinn = tbinn[tused]
+W = W[tused]
+dW = dW[tused]
+
+ax[0].errorbar(tbinn, W, yerr=dW, fmt='k.', label='outliers')
+
+frequency, power = LombScargle(tbinn, W).autopower()
+ax[1].plot(1/frequency, power, 'k')
+plt.show()
+
+
+d2vbinn, sd2vbinn = d2vbinn[tused], sd2vbinn[tused]
 
 ## Normalization
 
