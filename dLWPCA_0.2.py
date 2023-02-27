@@ -15,7 +15,7 @@ from hampel import hampel
 import pandas as pd
 
 ## Load data
-path = '/media/paul/One Touch2/SPIRou_Data/AU_MIC/AUMIC_AUMIC' #### PATH TO CHANGE ####
+path = '/media/paul/One Touch2/SPIRou_Data/EV_LAC/EV_LAC' #### PATH TO CHANGE ####
 os.chdir(path)
 
 file_list = []
@@ -38,7 +38,7 @@ ALL_d2v = np.array(ALL_d2v)
 ALL_sd2v = np.array(ALL_sd2v)
 times = np.array(times)
 
-p1 = fits.open('/media/paul/One Touch2/SPIRou_Data/AU_MIC/AUMIC_AUMIC/2425809o_pp_e2dsff_tcorr_AB_AUMIC_AUMIC_lbl.fits') #### PATH TO CHANGE ####
+p1 = fits.open('/media/paul/One Touch2/SPIRou_Data/EV_LAC/EV_LAC/2437259o_pp_e2dsff_tcorr_AB_EV_LAC_EV_LAC_lbl.fits') #### PATH TO CHANGE ####
 
 w1 = (p1[1].data['WAVE_START']+p1[1].data['WAVE_END'])/2.
 
@@ -145,7 +145,7 @@ for idx in tqdm(range(ALL_d2v.shape[1])):
     sd2vbinn.append(sd2vtemp)
 tbinn, d2vbinn, sd2vbinn = np.array(ttemp), np.array(d2vbinn).T, np.array(sd2vbinn).T
 
-## Pre-Remove Outliers
+## Pre-Remove Outliers, Per times
 
 print('Outliers removal...')
 plt.figure(0)
@@ -171,6 +171,33 @@ def remove_outliers(T, D2V, sD2V, threshold):
 tused = remove_outliers(tbinn, d2vbinn, sd2vbinn, m+3*s)
 
 tbinn, d2vbinn, sd2vbinn = tbinn[tused], d2vbinn[tused], sd2vbinn[tused]
+
+## ... Per lines
+
+plt.figure(6)
+stdbinn = []
+for l in range(d2vbinn.shape[1]):
+    stdbinn.append(np.nanstd(d2vbinn.T[l]))
+plt.plot(w_used, stdbinn, 'ko')
+m, s = np.mean(stdbinn), np.std(stdbinn)
+plt.axhline(y=m+3*s, c='r')
+plt.show()
+
+def remove_outliers(T, D2V, sD2V, threshold):
+    i = 0
+    tuse = []
+    while i < len(T):
+        if np.nanstd(D2V[i]) > threshold:
+            tuse.append(False)
+        else:
+            tuse.append(True)
+        i += 1
+    return(tuse)
+
+w_mask = remove_outliers(w_used, d2vbinn.T, sd2vbinn.T, m+3*s)
+
+w_used, d2vbinn, sd2vbinn = w_used[w_mask], d2vbinn[:, w_mask], sd2vbinn[:, w_mask]
+
 
 ## Remove Outliers
 
@@ -228,6 +255,7 @@ ax[1].axhline(fap, linestyle='--', color='k')
 fap = ls.false_alarm_level(0.001)
 ax[1].axhline(fap, linestyle=':', color='k')
 
+# plt.show()
 
 outlier_ind = hampel(pd.Series(np.copy(W)))
 tused = []
@@ -269,9 +297,9 @@ dRV2 = np.copy(sd2vbinn.T)/std_dv
 
 ## Saves
 
-np.save('/home/paul/Bureau/IRAP/dLWPCA/out/TablesAU_MIC/readyforwPCA_d2vsd2v.npy', [RV2, dRV2]) #### PATH TO CHANGE ####
-np.save('/home/paul/Bureau/IRAP/dLWPCA/out/TablesAU_MIC/readyforwPCA_linelist.npy', w_used)     #### PATH TO CHANGE ####
-np.save('/home/paul/Bureau/IRAP/dLWPCA/out/TablesAU_MIC/readyforwPCA_epoc.npy', tbinn)          #### PATH TO CHANGE ####
+np.save('/home/paul/Bureau/IRAP/dLWPCA/out/TablesEV_LAC/readyforwPCA_d2vsd2v.npy', [RV2, dRV2]) #### PATH TO CHANGE ####
+np.save('/home/paul/Bureau/IRAP/dLWPCA/out/TablesEV_LAC/readyforwPCA_linelist.npy', w_used)     #### PATH TO CHANGE ####
+np.save('/home/paul/Bureau/IRAP/dLWPCA/out/TablesEV_LAC/readyforwPCA_epoc.npy', tbinn)          #### PATH TO CHANGE ####
 
 ## wPCA
 
@@ -336,4 +364,4 @@ plt.show()
 
 # save principal vectors
 
-np.save('/home/paul/Bureau/IRAP/dLWPCA/out/TablesAU_MIC/2firstcomponent.npy', pca.components_[:2])  #### PATH TO CHANGE ####
+np.save('/home/paul/Bureau/IRAP/dLWPCA/out/TablesEV_LAC/2firstcomponent.npy', pca.components_[:2])  #### PATH TO CHANGE ####
