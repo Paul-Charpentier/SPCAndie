@@ -15,13 +15,14 @@ from hampel import hampel
 import pandas as pd
 
 ## Load data
-path = '/media/paul/One Touch2/SPIRou_Data/EV_LAC/EV_LAC' #### PATH TO CHANGE ####
+path = '/media/paul/One Touch2/SPIRou_Data/AU_MIC/AUMIC_AUMIC' #### PATH TO CHANGE ####
 os.chdir(path)
 
 file_list = []
 ALL_d2v = []
 ALL_sd2v = []
 times = []
+BERV = []
 #dirs=directories
 print('loading data...')
 for (root, dirs, file) in os.walk(path):
@@ -30,6 +31,7 @@ for (root, dirs, file) in os.walk(path):
             file_list.append(f)
             nthfile = fits.open(f)
             times.append(nthfile[0].header['BJD'])
+            BERV.append(nthfile[0].header['BERV'])
             ALL_d2v.append(nthfile[1].data['d2v'])
             ALL_sd2v.append(nthfile[1].data['sd2v'])
             nthfile.close()
@@ -37,8 +39,9 @@ for (root, dirs, file) in os.walk(path):
 ALL_d2v = np.array(ALL_d2v)
 ALL_sd2v = np.array(ALL_sd2v)
 times = np.array(times)
+BERV = np.array(BERV)
 
-p1 = fits.open('/media/paul/One Touch2/SPIRou_Data/EV_LAC/EV_LAC/2437259o_pp_e2dsff_tcorr_AB_EV_LAC_EV_LAC_lbl.fits') #### PATH TO CHANGE ####
+p1 = fits.open('/media/paul/One Touch2/SPIRou_Data/AU_MIC/AUMIC_AUMIC/2426110o_pp_e2dsff_tcorr_AB_AUMIC_AUMIC_lbl.fits') #### PATH TO CHANGE ####
 
 w1 = (p1[1].data['WAVE_START']+p1[1].data['WAVE_END'])/2.
 
@@ -133,7 +136,8 @@ def night_bin(times, rv, drv=None, binsize=0.5):
             time_0 = times[index]
             times_temp = [time_0]
             rv_temp = [rv[index]]
-            drv_temp = [drv[index]]
+            if drv is not None:
+                drv_temp = [drv[index]]
 
     return res_times[:res_index], res_rv[:res_index], res_drv[:res_index]
 
@@ -145,6 +149,10 @@ for idx in tqdm(range(ALL_d2v.shape[1])):
     sd2vbinn.append(sd2vtemp)
 tbinn, d2vbinn, sd2vbinn = np.array(ttemp), np.array(d2vbinn).T, np.array(sd2vbinn).T
 
+
+__, bervbin, __ = night_bin(times, BERV)
+
+
 ## Pre-Remove Outliers, Per times
 
 print('Outliers removal...')
@@ -155,6 +163,8 @@ for t in range(len(tbinn)):
 plt.plot(tbinn, stdbinn, 'ko')
 m, s = np.mean(stdbinn), np.std(stdbinn)
 plt.axhline(y=m+3*s, c='r')
+plt.xlabel('BJD')
+plt.ylabel('std')
 plt.show()
 
 def remove_outliers(T, D2V, sD2V, threshold):
@@ -170,7 +180,7 @@ def remove_outliers(T, D2V, sD2V, threshold):
 
 tused = remove_outliers(tbinn, d2vbinn, sd2vbinn, m+3*s)
 
-tbinn, d2vbinn, sd2vbinn = tbinn[tused], d2vbinn[tused], sd2vbinn[tused]
+tbinn, d2vbinn, sd2vbinn, bervbin = tbinn[tused], d2vbinn[tused], sd2vbinn[tused], bervbin[tused]
 
 ## ... Per lines
 
@@ -181,18 +191,9 @@ for l in range(d2vbinn.shape[1]):
 plt.plot(w_used, stdbinn, 'ko')
 m, s = np.mean(stdbinn), np.std(stdbinn)
 plt.axhline(y=m+3*s, c='r')
+plt.xlabel('nm')
+plt.ylabel('std')
 plt.show()
-
-def remove_outliers(T, D2V, sD2V, threshold):
-    i = 0
-    tuse = []
-    while i < len(T):
-        if np.nanstd(D2V[i]) > threshold:
-            tuse.append(False)
-        else:
-            tuse.append(True)
-        i += 1
-    return(tuse)
 
 w_mask = remove_outliers(w_used, d2vbinn.T, sd2vbinn.T, m+3*s)
 
@@ -231,7 +232,7 @@ def odd_ratio_mean(value, err, odd_ratio = 1e-4, nmax = 10):
     return guess,bulk_error
 
 W, dW = [],[]
-for t in tqdm(range(len(tbinn))):
+for t in range(len(tbinn)):
     wt, dwt = odd_ratio_mean(d2vbinn[t], sd2vbinn[t])
     W.append(wt)
     dW.append(dwt)
@@ -243,7 +244,7 @@ W, dW = np.array(W), np.array(dW)
 fig, ax = plt.subplots(1, 2, figsize=(16, 6))
 ax[0].errorbar(tbinn, W, yerr=dW, fmt='r.', label='outliers')
 
-frequency, power = LombScargle(tbinn, W).autopower()
+frequency, power = LombScargle(tbinn, W).autopower(nyquist_factor=15)
 ax[1].plot(1/frequency, power, 'r')
 ax[1].set_ylabel("power")
 ax[1].set_xscale('log')
@@ -271,12 +272,16 @@ dW = dW[tused]
 
 ax[0].errorbar(tbinn, W, yerr=dW, fmt='k.', label='outliers')
 
-frequency, power = LombScargle(tbinn, W).autopower()
+frequency, power = LombScargle(tbinn, W).autopower(nyquist_factor=15)
 ax[1].plot(1/frequency, power, 'k')
+ax[0].set_ylabel("dLW")
+ax[0].set_xlabel('BJD')
 plt.show()
 
 
 d2vbinn, sd2vbinn = d2vbinn[tused], sd2vbinn[tused]
+
+bervbin = bervbin[tused]
 
 ## Normalization
 
@@ -297,9 +302,10 @@ dRV2 = np.copy(sd2vbinn.T)/std_dv
 
 ## Saves
 
-np.save('/home/paul/Bureau/IRAP/dLWPCA/out/TablesEV_LAC/readyforwPCA_d2vsd2v.npy', [RV2, dRV2]) #### PATH TO CHANGE ####
-np.save('/home/paul/Bureau/IRAP/dLWPCA/out/TablesEV_LAC/readyforwPCA_linelist.npy', w_used)     #### PATH TO CHANGE ####
-np.save('/home/paul/Bureau/IRAP/dLWPCA/out/TablesEV_LAC/readyforwPCA_epoc.npy', tbinn)          #### PATH TO CHANGE ####
+np.save('/home/paul/Bureau/IRAP/dLWPCA/out/TablesAU_MIC/readyforwPCA_d2vsd2v.npy', [RV2, dRV2]) #### PATH TO CHANGE ####
+np.save('/home/paul/Bureau/IRAP/dLWPCA/out/TablesAU_MIC/readyforwPCA_linelist.npy', w_used)     #### PATH TO CHANGE ####
+np.save('/home/paul/Bureau/IRAP/dLWPCA/out/TablesAU_MIC/readyforwPCA_epoc.npy', tbinn)          #### PATH TO CHANGE ####
+np.save('/home/paul/Bureau/IRAP/dLWPCA/out/TablesAU_MIC/readyforwPCA_BERV.npy', bervbin)          #### PATH TO CHANGE ####
 
 ## wPCA
 
@@ -327,7 +333,7 @@ fig, ax = plt.subplots(2, 2, figsize=(16, 6))
 ax[0, 0].plot(tbinn, pca.components_[0], '.r', label='1st')
 ax[0, 0].plot(tbinn, pca.components_[1], '.g', label='2nd')
 
-frequency, power = LombScargle(tbinn, pca.components_[0]).autopower()
+frequency, power = LombScargle(tbinn, pca.components_[0]).autopower(nyquist_factor=15)
 ax[0, 1].plot(1/frequency, power, 'r')
 ax[0, 1].set_ylabel("power")
 ax[0, 1].set_xscale('log')
@@ -339,7 +345,7 @@ ax[0, 1].axhline(fap, linestyle='--', color='k')
 fap = ls.false_alarm_level(0.001)
 ax[0, 1].axhline(fap, linestyle=':', color='k')
 
-frequency, power = LombScargle(tbinn, pca.components_[1]).autopower()
+frequency, power = LombScargle(tbinn, pca.components_[1]).autopower(nyquist_factor=15)
 ax[1, 0].plot(1/frequency, power, 'g')
 ax[1, 0].set_xlabel("period (d)")
 ax[1, 0].set_ylabel("power")
@@ -364,4 +370,4 @@ plt.show()
 
 # save principal vectors
 
-np.save('/home/paul/Bureau/IRAP/dLWPCA/out/TablesEV_LAC/2firstcomponent.npy', pca.components_[:2])  #### PATH TO CHANGE ####
+np.save('/home/paul/Bureau/IRAP/dLWPCA/out/TablesAU_MIC/2firstcomponent.npy', pca.components_[:10])  #### PATH TO CHANGE ####
