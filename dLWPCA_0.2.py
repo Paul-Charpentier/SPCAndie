@@ -15,7 +15,7 @@ from hampel import hampel
 import pandas as pd
 
 ## Load data
-path = '/media/paul/One Touch2/SPIRou_Data/AU_MIC/AUMIC_AUMIC' #### PATH TO CHANGE ####
+path = '/media/paul/One Touch2/SPIRou_Data/Gl_1289/Gl_1289' #### PATH TO CHANGE ####
 os.chdir(path)
 
 file_list = []
@@ -41,7 +41,7 @@ ALL_sd2v = np.array(ALL_sd2v)
 times = np.array(times)
 BERV = np.array(BERV)
 
-p1 = fits.open('/media/paul/One Touch2/SPIRou_Data/AU_MIC/AUMIC_AUMIC/2426110o_pp_e2dsff_tcorr_AB_AUMIC_AUMIC_lbl.fits') #### PATH TO CHANGE ####
+p1 = fits.open('/media/paul/One Touch2/SPIRou_Data/Gl_1289/Gl_1289/2426522o_pp_e2dsff_tcorr_AB_GJ1289_GJ1289_lbl.fits') #### PATH TO CHANGE ####
 
 w1 = (p1[1].data['WAVE_START']+p1[1].data['WAVE_END'])/2.
 
@@ -153,7 +153,7 @@ tbinn, d2vbinn, sd2vbinn = np.array(ttemp), np.array(d2vbinn).T, np.array(sd2vbi
 __, bervbin, __ = night_bin(times, BERV)
 
 
-## Pre-Remove Outliers, Per times
+## Pre-Remove out0liers, Per times
 
 print('Outliers removal...')
 plt.figure(0)
@@ -182,107 +182,6 @@ tused = remove_outliers(tbinn, d2vbinn, sd2vbinn, m+3*s)
 
 tbinn, d2vbinn, sd2vbinn, bervbin = tbinn[tused], d2vbinn[tused], sd2vbinn[tused], bervbin[tused]
 
-## ... Per lines
-
-plt.figure(6)
-stdbinn = []
-for l in range(d2vbinn.shape[1]):
-    stdbinn.append(np.nanstd(d2vbinn.T[l]))
-plt.plot(w_used, stdbinn, 'ko')
-m, s = np.mean(stdbinn), np.std(stdbinn)
-plt.axhline(y=m+3*s, c='r')
-plt.xlabel('nm')
-plt.ylabel('std')
-plt.show()
-
-w_mask = remove_outliers(w_used, d2vbinn.T, sd2vbinn.T, m+3*s)
-
-w_used, d2vbinn, sd2vbinn = w_used[w_mask], d2vbinn[:, w_mask], sd2vbinn[:, w_mask]
-
-
-## Remove Outliers
-
-def odd_ratio_mean(value, err, odd_ratio = 1e-4, nmax = 10):
-    #
-    # Provide values and corresponding errors and compute a
-    # weighted mean
-    #
-    #
-    # odd_bad -> probability that the point is bad
-    #
-    # nmax -> number of iterations
-    keep = np.isfinite(value)*np.isfinite(err)
-    if np.sum(keep) == 0:
-        return np.nan,np.nan
-
-    value = value[keep]
-    err = err[keep]
-    guess = np.nanmedian(value)
-    nite = 0
-    while (nite < nmax):
-        nsig = (value-guess)/err
-        gg = np.exp(-0.5*nsig**2)
-        odd_bad = odd_ratio/(gg+odd_ratio)
-        odd_good = 1-odd_bad
-        w = odd_good/err**2
-        guess = np.nansum(value*w)/np.nansum(w)
-        nite+=1
-
-    bulk_error = np.sqrt(1/np.nansum(odd_good/err**2))
-    return guess,bulk_error
-
-W, dW = [],[]
-for t in range(len(tbinn)):
-    wt, dwt = odd_ratio_mean(d2vbinn[t], sd2vbinn[t])
-    W.append(wt)
-    dW.append(dwt)
-
-W, dW = np.array(W), np.array(dW)
-
-
-
-fig, ax = plt.subplots(1, 2, figsize=(16, 6))
-ax[0].errorbar(tbinn, W, yerr=dW, fmt='r.', label='outliers')
-
-frequency, power = LombScargle(tbinn, W).autopower(nyquist_factor=15)
-ax[1].plot(1/frequency, power, 'r')
-ax[1].set_ylabel("power")
-ax[1].set_xscale('log')
-ls = LombScargle(tbinn, W)
-fap = ls.false_alarm_level(0.1)
-ax[1].axhline(fap, linestyle='-', color='k')
-fap = ls.false_alarm_level(0.01)
-ax[1].axhline(fap, linestyle='--', color='k')
-fap = ls.false_alarm_level(0.001)
-ax[1].axhline(fap, linestyle=':', color='k')
-
-# plt.show()
-
-outlier_ind = hampel(pd.Series(np.copy(W)))
-tused = []
-for t in range(len(tbinn)):
-    if t in outlier_ind:
-        tused.append(False)
-    else :
-        tused.append(True)
-
-tbinn = tbinn[tused]
-W = W[tused]
-dW = dW[tused]
-
-ax[0].errorbar(tbinn, W, yerr=dW, fmt='k.', label='outliers')
-
-frequency, power = LombScargle(tbinn, W).autopower(nyquist_factor=15)
-ax[1].plot(1/frequency, power, 'k')
-ax[0].set_ylabel("dLW")
-ax[0].set_xlabel('BJD')
-plt.show()
-
-
-d2vbinn, sd2vbinn = d2vbinn[tused], sd2vbinn[tused]
-
-bervbin = bervbin[tused]
-
 ## Normalization
 
 print('Normalization...')
@@ -302,10 +201,10 @@ dRV2 = np.copy(sd2vbinn.T)/std_dv
 
 ## Saves
 
-np.save('/home/paul/Bureau/IRAP/dLWPCA/out/TablesAU_MIC/readyforwPCA_d2vsd2v.npy', [RV2, dRV2]) #### PATH TO CHANGE ####
-np.save('/home/paul/Bureau/IRAP/dLWPCA/out/TablesAU_MIC/readyforwPCA_linelist.npy', w_used)     #### PATH TO CHANGE ####
-np.save('/home/paul/Bureau/IRAP/dLWPCA/out/TablesAU_MIC/readyforwPCA_epoc.npy', tbinn)          #### PATH TO CHANGE ####
-np.save('/home/paul/Bureau/IRAP/dLWPCA/out/TablesAU_MIC/readyforwPCA_BERV.npy', bervbin)          #### PATH TO CHANGE ####
+np.save('/home/paul/Bureau/IRAP/dLWPCA/out0/TablesGL1289/readyforwPCA_d2vsd2v.npy', [RV2, dRV2]) #### PATH TO CHANGE ####
+np.save('/home/paul/Bureau/IRAP/dLWPCA/out0/TablesGL1289/readyforwPCA_linelist.npy', w_used)     #### PATH TO CHANGE ####
+np.save('/home/paul/Bureau/IRAP/dLWPCA/out0/TablesGL1289/readyforwPCA_epoc.npy', tbinn)          #### PATH TO CHANGE ####
+np.save('/home/paul/Bureau/IRAP/dLWPCA/out0/TablesGL1289/readyforwPCA_BERV.npy', bervbin)          #### PATH TO CHANGE ####
 
 ## wPCA
 
@@ -321,6 +220,83 @@ pca = WPCA(n_components=RV2.shape[1])
 
 pca.regularization = 2
 
+pca.fit(RV2, weights=weights)
+
+print('wapiting... ')
+#
+fig, ax = plt.subplots(2, 2, figsize=(16, 6))
+ax[0, 0].plot(tbinn, pca.components_[0], 'r.', label='outliers')
+
+ax[1, 0].plot(tbinn, pca.components_[1], 'r.', label='outliers')
+#
+frequency, power = LombScargle(tbinn, pca.components_[0]).autopower()
+ax[0, 1].plot(1/frequency, power, 'r')
+ax[0, 1].set_ylabel("power")
+ax[0, 1].set_xscale('log')
+ls = LombScargle(tbinn, pca.components_[0])
+fap = ls.false_alarm_level(0.1)
+ax[0, 1].axhline(fap, linestyle='-', color='k')
+fap = ls.false_alarm_level(0.01)
+ax[0, 1].axhline(fap, linestyle='--', color='k')
+fap = ls.false_alarm_level(0.001)
+ax[0, 1].axhline(fap, linestyle=':', color='k')
+#
+frequency, power = LombScargle(tbinn, pca.components_[1]).autopower()
+ax[1, 1].plot(1/frequency, power, 'r')
+ax[1, 1].set_ylabel("power")
+ax[1, 1].set_xscale('log')
+ls = LombScargle(tbinn, pca.components_[0])
+fap = ls.false_alarm_level(0.1)
+ax[1, 1].axhline(fap, linestyle='-', color='k')
+fap = ls.false_alarm_level(0.01)
+ax[1, 1].axhline(fap, linestyle='--', color='k')
+fap = ls.false_alarm_level(0.001)
+ax[1, 1].axhline(fap, linestyle=':', color='k')
+
+
+
+outlier_ind1 = hampel(pd.Series(np.copy(pca.components_[0])), window_size=10, n=5) #
+outlier_ind2 = hampel(pd.Series(np.copy(pca.components_[1])), window_size=10, n=5)
+tused = []
+for t in range(len(tbinn)):
+    if t in outlier_ind1 or t in outlier_ind2:
+        tused.append(False)
+    else :
+        tused.append(True)
+RV2, dRV2, tbinn, bervbin = RV2.T[tused], dRV2.T[tused], tbinn[tused], bervbin[tused]
+RV2, dRV2 = RV2.T, dRV2.T
+pcacomp = pca.components_.T[tused]
+pcacomp = pcacomp.T
+
+ax[0, 0].plot(tbinn, pcacomp[0], 'k.')
+#
+ax[1, 0].plot(tbinn, pcacomp[1], 'k.')
+
+frequency, power = LombScargle(tbinn, pcacomp[0]).autopower()
+ax[0, 1].plot(1/frequency, power, 'k')
+
+frequency, power = LombScargle(tbinn, pcacomp[1]).autopower()
+ax[1, 1].plot(1/frequency, power, 'k')
+
+ax[0, 0].set_ylabel("W1")
+ax[0, 0].set_xlabel('BJD')
+plt.savefig('/home/paul/Bureau/IRAP/dLWPCA/out0/TablesGL1289/MADoutlier.png')    #### PATH TO CHANGE ####
+plt.show()
+
+
+##wPCA
+print('runing PCA...')
+# weighting
+#
+weights = 1. / dRV2
+weights[np.isnan(RV2)] = 0
+#
+# Run pca
+#
+pca = WPCA(n_components=RV2.shape[1])
+#
+pca.regularization = 2
+#
 pca.fit(RV2, weights=weights)
 
 # Check Orthogonalization
@@ -366,8 +342,9 @@ ax[0, 0].set_title('2 first component')
 ax[0, 1].set_title('1st Principal Vector')
 ax[1, 0].set_title('2nd Principal Vector')
 ax[1, 1].set_title('PCA variance ratio')
+plt.savefig('/home/paul/Bureau/IRAP/dLWPCA/out0/TablesGL1289/FinalPCA.png')
 plt.show()
 
 # save principal vectors
 
-np.save('/home/paul/Bureau/IRAP/dLWPCA/out/TablesAU_MIC/2firstcomponent.npy', pca.components_[:10])  #### PATH TO CHANGE ####
+np.save('/home/paul/Bureau/IRAP/dLWPCA/out0/TablesGL1289/2firstcomponent.npy', pca.components_[:10])  #### PATH TO CHANGE ####
