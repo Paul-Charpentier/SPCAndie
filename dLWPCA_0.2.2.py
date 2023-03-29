@@ -107,7 +107,7 @@ def night_bin(times, rv, drv=None, binsize=0.5):
             if drv is not None:
                 drv_temp.append(drv[index])
 
-        else:
+        if np.abs(times[index] - time_0) > binsize or index == n-1:
             times_temp = np.array(times_temp)
             res_times[res_index] = times_temp.mean()
             rv_temp = np.array(rv_temp)
