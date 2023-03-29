@@ -108,7 +108,7 @@ def night_bin(times, rv, drv=None, binsize=0.5):
             if drv is not None:
                 drv_temp.append(drv[index])
 
-        else:
+        if np.abs(times[index] - time_0) > binsize or index == n-1:
             times_temp = np.array(times_temp)
             res_times[res_index] = times_temp.mean()
             rv_temp = np.array(rv_temp)
@@ -410,14 +410,14 @@ np.save('/home/paul/Bureau/IRAP/dLWPCA/out/TablesGL1286/readyforwPCA_BERV.npy', 
 
 
 fig, ax = plt.subplots(2, 2, figsize=(16, 6))
-ax[0, 0].plot(tbinn, pcacomp[0], '.r', label='1st')
-ax[0, 0].plot(tbinn, pcacomp[1], '.g', label='2nd')
+ax[0, 0].plot(tbinn, pca.components_[0], '.r', label='1st')
+ax[0, 0].plot(tbinn, pca.components_[1], '.g', label='2nd')
 
-frequency, power = LombScargle(tbinn, pcacomp[0]).autopower(nyquist_factor=15)
+frequency, power = LombScargle(tbinn, pca.components_[0]).autopower(nyquist_factor=15)
 ax[0, 1].plot(1/frequency, power, 'r')
 ax[0, 1].set_ylabel("power")
 ax[0, 1].set_xscale('log')
-ls = LombScargle(tbinn, pcacomp[0])
+ls = LombScargle(tbinn, pca.components_[0])
 fap = ls.false_alarm_level(0.1)
 ax[0, 1].axhline(fap, linestyle='-', color='k')
 fap = ls.false_alarm_level(0.01)
@@ -425,12 +425,12 @@ ax[0, 1].axhline(fap, linestyle='--', color='k')
 fap = ls.false_alarm_level(0.001)
 ax[0, 1].axhline(fap, linestyle=':', color='k')
 #
-frequency, power = LombScargle(tbinn, pcacomp[1]).autopower(nyquist_factor=15)
+frequency, power = LombScargle(tbinn, pca.components_[1]).autopower(nyquist_factor=15)
 ax[1, 0].plot(1/frequency, power, 'g')
 ax[1, 0].set_xlabel("period (d)")
 ax[1, 0].set_ylabel("power")
 ax[1, 0].set_xscale('log')
-ls = LombScargle(tbinn, pcacomp[1])
+ls = LombScargle(tbinn, pca.components_[1])
 fap = ls.false_alarm_level(0.1)
 ax[1, 0].axhline(fap, linestyle='-', color='k')
 fap = ls.false_alarm_level(0.01)
@@ -450,4 +450,4 @@ plt.savefig('/home/paul/Bureau/IRAP/dLWPCA/out/TablesGL1286/FinalPCA.png')      
 plt.show()
 #
 
-np.save('/home/paul/Bureau/IRAP/dLWPCA/out/TablesGL1286/2firstcomponent.npy', pcacomp[:10])  #### PATH TO CHANGE ####
+np.save('/home/paul/Bureau/IRAP/dLWPCA/out/TablesGL1286/2firstcomponent.npy', pca.components_[:10])  #### PATH TO CHANGE ####
