@@ -494,13 +494,6 @@ for i in tqdm(range(1, len(BERV_Domain))):
 
     W_rmv.append( np.abs(BERV_CORR) > stdberv )
 
-    # for l in range(len(w_used)):
-    #     if np.abs(BERV_CORR[l]) > stdberv:
-    #         if w_used in W_rmv:
-    #             continue
-    #         else:
-    #             W_rmv.append(w_used)
-    #
 
     axs[0, h].plot(w_used, BERV_CORR, '.k', alpha=0.2)
     axs[0, h].axhline(y=stdberv, c='r')
@@ -579,59 +572,6 @@ d2vfiltr = d2vfiltr[:, used_waves]
 sd2vfiltr = sd2vfiltr[:, used_waves]
 w_used = w_used[used_waves]
 
-
-# #### BREAK POINT
-# sys.exit()
-# #### ##### #####
-
-# ## Filter wavelength on theyr berv correlation ...
-#
-# def hidewlberv(All_dw, Berv, threshold=0.5):
-#     usew = []
-#     for l in tqdm(range(d2vbinn.shape[1])):
-#         X = d2vbinn[:,l]
-#         if np.sum(np.isnan(X))>=len(X)-1:
-#             usew.append(False)
-#         else :
-#             BERVCORR = pearsonr(X[nanTremoval(X)], bervbin[nanTremoval(X)])
-#             if np.abs(BERVCORR[0]) > threshold:
-#                 usew.append(False)
-#             else :
-#                 usew.append(True)
-#     return usew
-#
-#
-# ## On the BERV structure
-#
-# usew = hidewlberv(RV2_bervselect, berv_select, threshold = stdbervall)
-# d2vberf = d2vbinn[:, usew]
-# sd2vberf = sd2vbinn[:, usew]
-# w_used = w_used[usew]
-# ##
-# BERV_CORR = []
-# for l in tqdm(range(d2vberf.shape[1])):
-#     X = d2vberf[:,l]
-#     BERV_CORR.append(pearsonr(X[nanTremoval(X)], bervbin[nanTremoval(X)])[0])
-# BERV_CORR = np.array(BERV_CORR)
-# binn = binningx0dt(w_used, BERV_CORR, nbins=50)[0]
-# #
-# fig, axs = plt.subplots(1, 2, sharey=True, tight_layout=True, gridspec_kw={'width_ratios': [7, 1]})
-#
-# axs[0].plot(w_used, BERV_CORR, '.k', alpha=0.2)
-# axs[0].axhline(y=stdbervall, c='r')
-# axs[0].axhline(y=-stdbervall, c='r')
-# axs[0].errorbar(binn[:,0],binn[:,1],binn[:,2], fmt='ob')
-# axs[0].set_xlabel('$\lambda$ (nm)')
-# axs[0].set_ylabel('Correlation with BERV')
-# axs[0].set_ylim(-1,1)
-# axs[0].set_title('On the whole domain')
-#
-# axs[1].hist(BERV_CORR, bins=20, orientation='horizontal')
-# axs[1].set_xlabel('#')
-# axs[1].set_ylim(-1,1)
-# plt.show()
-
-#
 ## Normalization
 
 print('Normalization...')
@@ -721,91 +661,6 @@ ax[1, 2].set_ylabel('W2')
 
 plt.savefig('/home/paul/Bureau/IRAP/dLWPCA/out_0.4.0/0.7.254/TablesGL1289/BERVwlfilter.png')  #### PATH TO CHANGE ####
 plt.show()
-
-# #### BREAK POINT
-# sys.exit()
-# #### ##### #####
-# ## Berv correction
-#
-# print('BERV correction')
-# def bervcorrection(bandmin, bandmax, berv, time):
-#     tused = []
-#     for t in range(len(time)):
-#         if berv[t]< bandmax and berv[t]>bandmin:
-#             tused.append(False)
-#         else:
-#             tused.append(True)
-#     return(np.array(tused))
-#
-# # tused = bervcorrection(-15, -8 , bervbin, tbinn)                               #### Bands to change given the star (refers to fig 10) ####
-# # RV2, dRV2, tbinn, bervbin = RV2.T[tused], dRV2.T[tused], tbinn[tused], bervbin[tused]  #### Bands to change given the star (refers to fig 10) ####
-# # RV2, dRV2 = RV2.T, dRV2.T                                                              #### Bands to change given the star (refers to fig 10) ####
-# tused = bervcorrection(min(bervbin) -1, -24, bervbin, tbinn)                                #### Bands to change given the star (refers to fig 10) ####
-# RV2, dRV2, tbinn, bervbin = RV2.T[tused], dRV2.T[tused], tbinn[tused], bervbin[tused]    #### Bands to change given the star (refers to fig 10) ####
-# RV2, dRV2 = RV2.T, dRV2.T                                                                #### Bands to change given the star (refers to fig 10) ####
-# # tused = bervcorrection(5, 8, bervbin, tbinn)                                           #### Bands to change given the star (refers to fig 10) ####
-# # RV2, dRV2, tbinn, bervbin = RV2.T[tused], dRV2.T[tused], tbinn[tused], bervbin[tused]  #### Bands to change given the star (refers to fig 10) ####
-# # RV2, dRV2 = RV2.T, dRV2.T                                                              #### Bands to change given the star (refers to fig 10) ####
-# ## wPCA
-# #
-# print('runing PCA...')
-# # weighting
-# #
-# weights = 1. / dRV2
-# weights[np.isnan(RV2)] = 0
-# #
-# # Run pca
-# #
-# pca = WPCA(n_components=RV2.shape[1])
-# #
-# pca.regularization = 2
-# #
-# pca.fit(RV2, weights=weights)
-# #
-# # Check Orthogonalization
-#
-# print([np.dot(pca.components_[0], pca.components_[i]) for i in range(10)])
-
-
-# # Check berv
-#
-# plt.figure(11)
-# plt.title('After BERV Correction')
-# plt.plot(bervbin, pca.components_[0], '.')
-# plt.xlabel('BERV (m/s)')
-# plt.ylabel('W1')
-# plt.savefig('/home/paul/Bureau/IRAP/dLWPCA/out_0.4.0/0.7.254/TablesGL1289AfterBERVcorrection.png') #### PATH TO CHANGE ####
-# plt.show()
-# print('BERV corrected shape:', RV2.shape)
-
-# fig, ax = plt.subplots(1, 3, figsize=(20, 5))
-# ax[0].plot(bervbin, pca.components_[0], '.')
-# ax[0].set_xlabel('BERV (m/s)')
-# ax[0].set_ylabel('W1')
-# #
-# frequency, power = LombScargle(tbinn, pca.components_[0]).autopower()
-# ax[1].plot(1/frequency, power, 'r')
-# ax[1].set_ylabel("power")
-# ax[1].set_xscale('log')
-# ls = LombScargle(tbinn, pca.components_[0])
-# fap = ls.false_alarm_level(0.1)
-# ax[1].axhline(fap, linestyle='-', color='k')
-# fap = ls.false_alarm_level(0.01)
-# ax[1].axhline(fap, linestyle='--', color='k')
-# fap = ls.false_alarm_level(0.001)
-# ax[1].axhline(fap, linestyle=':', color='k')
-# ax[1].axvline(203, linestyle=':', color='b', alpha=0.5)
-# ax[1].set_title('After BERV Correction')
-#
-# ax[2].plot(tbinn, pca.components_[0], '.')
-# ax[2].set_xlabel('BJD')
-# ax[2].set_ylabel('W1')
-# plt.savefig('/home/paul/Bureau/IRAP/dLWPCA/out_0.4.0/0.7.254/TablesGL1289/AfterBERVcorrection.png')  #### PATH TO CHANGE ####
-# plt.show()
-
-# #### BREAK POINT
-# sys.exit()
-# #### ##### #####
 
 ## MAD outliers wapiti removal
 #
