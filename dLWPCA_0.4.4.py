@@ -737,3 +737,9 @@ ax[1, 2].set_ylabel('W2')
 
 plt.savefig('/home/paul/Bureau/IRAP/dLWPCA/out_0.4.0/0.7.254/TablesGL1289/BERVwlfinal.png')  #### PATH TO CHANGE ####
 plt.show()
+
+## Saves
+
+np.save('/home/paul/Bureau/IRAP/dLWPCA/out_0.4.0/0.7.254/TablesGL1289/epoc.npy', tbinn)          #### PATH TO CHANGE ####
+np.save('/home/paul/Bureau/IRAP/dLWPCA/out_0.4.0/0.7.254/TablesGL1289/BERV.npy', bervbin)          #### PATH TO CHANGE ####
+np.save('/home/paul/Bureau/IRAP/dLWPCA/out_0.4.0/0.7.254/TablesGL1289/firstcomponent.npy', pca.components_[:10])  #### PATH TO CHANGE ####
