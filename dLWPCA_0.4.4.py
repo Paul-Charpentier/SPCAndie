@@ -12,6 +12,7 @@ import pandas as pd
 from scipy.stats.stats import pearsonr
 from PyAstronomy.pyasl import binningx0dt
 import sys
+from astropy.stats import sigma_clip
 
 ## Load data
 
@@ -142,33 +143,10 @@ tbinn, d2vbinn, sd2vbinn = np.array(ttemp), np.array(d2vbinn).T, np.array(sd2vbi
 
 __, bervbin, __ = night_bin(times, BERV)
 
-## Pre-Remove outliers ([NOTE] Find a clever way)
+## Remove outliers by sigmaclipping
 
 print('Outliers removal...')
-plt.figure(0)
-stdbinn = []
-for t in range(len(tbinn)):
-    stdbinn.append(np.nanstd(d2vbinn[t]))
-plt.plot(tbinn, stdbinn, 'ko')
-m, s = np.mean(stdbinn), np.std(stdbinn)
-plt.axhline(y=m+3*s, c='r')
-plt.xlabel('BJD')
-plt.ylabel('std')
-plt.show()
-
-def remove_outliers(T, D2V, sD2V, threshold):
-    i = 0
-    tuse = []
-    while i < len(T):
-        if np.nanstd(D2V[i]) > threshold:
-            tuse.append(False)
-        else:
-            tuse.append(True)
-        i += 1
-    return(tuse)
-
-tused = remove_outliers(tbinn, d2vbinn, sd2vbinn, m+3*s)
-tbinn, d2vbinn, sd2vbinn, bervbin = tbinn[tused], d2vbinn[tused], sd2vbinn[tused], bervbin[tused]
+d2vbinn = sigma_clip(d2vbinn, sigma=3, axis=0, masked=False)
 
 ## First PCA without any correction
 
