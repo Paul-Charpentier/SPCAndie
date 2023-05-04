@@ -273,16 +273,6 @@ ax[1, 2].set_ylabel('W2')
 plt.savefig('/home/paul/Bureau/IRAP/dLWPCA/out_0.5.0/0.7.275/TablesEV_LAC/BERV_Before.png')
 plt.show()
 
-
-# ## Imshow
-#
-# # plt.plot(Vtot, RV2.T, '.')
-# # plt.show()
-# plt.figure(figsize=(16,9))
-# plt.imshow(RV2.T, origin='lower')
-# plt.tight_layout()
-# plt.show()
-
 ## Def function
 
 def displine(ind):
@@ -414,24 +404,6 @@ ax[1, 2].set_ylabel('W2')
 plt.savefig('/home/paul/Bureau/IRAP/dLWPCA/out_0.5.0/0.7.275/TablesEV_LAC/LSfiltered.png')
 plt.show()
 
-# ## Already found by MerwPCAn ?
-#
-# our_list = w_used[indlw]
-#
-# Merbot, Merup = np.loadtxt('/home/paul/Bureau/IRAP/MerwPCAn/out/0.7.275/TablesEV_LAC/EV_LAC_impacted_lines_z0_2.rdb', usecols=(1,2),skiprows=2, dtype=str, unpack=True)
-# Merbot = np.array(Merbot.astype(float))
-# Merup = np.array(Merup.astype(float))
-#
-# ismer = []
-# M = len(Merup)
-# for i in tqdm(our_list):
-#     inmer = False
-#     m = 0
-#     while inmer==False and m<M:
-#         if i>Merbot[m] and i<Merup[m]:
-#             inmer = True
-#         m +=1
-#     ismer.append(inmer)
 
 
 
