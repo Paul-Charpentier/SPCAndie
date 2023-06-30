@@ -12,6 +12,7 @@ There is 3 different methods obtain a clear, and BERV filtered, _W1_ signal:
   - `Periodogram.py` extract the activity signal by looking only at the lines were the activity appears in their _dLW_ periodogram.
   - `SPCAndie.py` Use machine learning tools such as tSNE, Umap, TriMap or PacMap to sort the lines given their dLW periodogram.
   - `Bcorr.py` Sort the lines given their correlation regarding the magnetic field.
+  - `PhasePlot.py` fit a Prot sine to each dLW data and sort them regarding the phase plot correlation produced. 
   
 And one to analyze the resulting _W1_:
   - `GwPCA.py` is about to analyze the first component return by the PCA by applying a Gaussian Processes regresion on it and compares it to available data on the magnetic field and radial velocities. The GP used is a custom tedi GP (https://github.com/jdavidrcamacho/tedi)
