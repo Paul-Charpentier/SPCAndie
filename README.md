@@ -6,3 +6,5 @@ This notebook book is analysing a toy model of this contamination on a simulated
 The analysis on true data will be published in a comming paper (Charpentier et al. in prep.) 
 
 Feel free to use this code on your own research (but citing me will be nice of you :) ) 
+
+![SPCAndie logo](image link)
