@@ -7,4 +7,4 @@ The analysis on true data will be published in a comming paper (Charpentier et a
 
 Feel free to use this code on your own research (but citing me will be nice of you :) ) 
 
-![SPCAndie logo](image link)
+![SPCAndie logo](https://github.com/Paul-Charpentier/SPCAndie/blob/main/SPCAndie_logo.png)
