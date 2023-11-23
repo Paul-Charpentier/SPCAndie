@@ -1,4 +1,4 @@
-# dLWPCA
+# SPCAndie
 
 Here is my code to filter out the telluric in W1, the first component wPCA of the differential line width (dLW) data from lbl
 
