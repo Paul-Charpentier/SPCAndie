@@ -23,50 +23,58 @@ import gc
 ## Set Up
 #  (this is the only part you are suppose to change unless you know what you do)
 
-Target = ['EV_LAC', 'GL410']
-Prot = [4.3615, 13.87]
+Target = ['GJ1286_SLINKY05', 'GJ3378_SLINKY05',  'GL205_SLINKY05', 'GL251_SLINKY05', 'GL317_SLINKY05', 'GL388_SLINKY05', 'GL406_SLINKY05', 'GL514_SLINKY05', 'GL725A_SLINKY05', 'GL725B_SLINKY05', 'GL849_SLINKY05', 'TOI2120_SLINKY05']
+Prot = [178, 92.1, 44.3, 98.7, 39.0, 2.2399, 2.704, 30.45, 103.1, 135, 41.4, 2.406]
 Template = Target
 #Niters = 750 #Number of iterations for PacMap (default is 450)
 
 chatty = True
 plotty = True
-initial_mad_rejection = 10   # MAD rejection threshold for the outlier removal
-n_component_rejection = 10  # Number of component to check for the outlier removal
-looplier = 10 # Number of outlier rejection loops
+initial_mad_rejection = 4.5   # MAD rejection threshold for the outlier removal
+#n_component_rejection = 10  # Number of component to check for the outlier removal
+#looplier = 2 # Number of outlier rejection loops
 
 yr = 365.25
 period_grid = np.logspace(np.log(1.25), 3, 1000)
 frequency = 1/period_grid # periodogram frequency grid
 
-cwd = "/media/paul/One Touch11/wapiti_workflow" ## base work directory
-
+cwd = "/media/paul/One Touch11/UdeM/lbl_spirou" ## base work directory
 
 ## Functions
 
 def get_data(target, template):
     #files = os.listdir(cwd+'/lblrv/'+target+'_'+template)
-    os.chdir(cwd+'/lblrv/'+target+'_'+template)
+    path = cwd + '/lblrv/' + target +'_' + template  #### PATH TO CHANGE ####
+    os.chdir(path)
+
     times_lbl = []
     d2vs_all = []
     dd2vs_all = []
     snrs = []
     berv = []
-    for (root, dirs, files) in os.walk(cwd+'/lblrv/'+target+'_'+template):
+    for (root, dirs, files) in os.walk(path):
         for f in tqdm(sorted(files)):
             if 'lbl.fits' in f:
-                lbl = fits.open(f, memmap=False)
-                # = fits.open(cwd+'/lblrv/'+target+'_'+template+'/'+file)
-                times_lbl.append(lbl[0].header['BJD'])
-                berv.append(lbl[0].header['BERV'])
-                d2vs_all.append(lbl[1].data['d2v'])
-                dd2vs_all.append(lbl[1].data['sd2v'])
-                snrs.append(lbl[0].header['SPEMSNR'])
-                lbl.close()
+                with fits.open(f, memmap=True) as nthfile:
+                    # Collect scalar values
+                    times_lbl.append(nthfile[0].header['BJD'])
+                    berv.append(nthfile[0].header['BERV'])
+                    snrs.append(nthfile[0].header['SPEMSNR'])
+
+                    # Load and store FITS binary table data
+                    d2vs_all.append(nthfile[1].data['d2v'])
+                    dd2vs_all.append(nthfile[1].data['sd2v'])
+
+                    # Force garbage collection
+                    gc.collect()
+
     times_lbl = np.array(times_lbl)
     d2vs_all = np.array(d2vs_all)
     dd2vs_all = np.array(dd2vs_all)
     snrs = np.array(snrs)
     berv = np.array(berv)
+    # Free additional memory
+    gc.collect()
     return times_lbl, d2vs_all, dd2vs_all, snrs, berv
 
 def run_PCA(x, dx):
@@ -128,7 +136,7 @@ def PacMapDisp(X, max_freq, max_pow, max_fap, target_name, niters = 450, n_neigh
         plt.legend(handles, labels, title = '$- 10 logFAP_{max}$', prop={'size':12, 'weight':'bold'})
         #plt.title('PacMap')
         plt.axis('off')
-        plt.savefig(cwd+"/out/" + target_name + "PacMap.pdf", format="pdf", bbox_inches="tight")
+        plt.savefig(cwd+"/out_SPCAndie/" + target_name + "PacMap.pdf", format="pdf", bbox_inches="tight")
         #plt.ion()
     return(X_transformed)
 
@@ -183,7 +191,7 @@ def preselect(PacMap_map, max_freq, max_pow, max_fap, prot):
         print('         a priori flagged activity lines :', Pac_prot.shape[0])
         print('         a priori flagged telluric lines :', Pac_an.shape[0])
 
-    prot_weight_ratio = Pac_an.shape[0]/Pac_prot.shape[0]
+    prot_weight_ratio = 1 #Pac_an.shape[0]/Pac_prot.shape[0]
 
     class_id = np.concatenate((np.zeros_like(Pac_prot.T[0]), np.ones_like(Pac_an.T[0])))
     Pac_split = np.concatenate((Pac_prot, Pac_an))
@@ -220,113 +228,114 @@ def ind_outliers(v, k):
     rejection_index = np.where(rejection)[0]
     return(rejection_index)
 
-def compute_anomaly_degree(pca):
-    """
-    Compute the anomaly degree of each epoch based on the maximum ratio between the absolute deviation and the median
-    absolute deviation among all principal vectors V_n. This is used to identify anomalous observations.
 
-    Parameters:
-        pca (WPCA): A fitted wPCA model containing principal components.
+#def compute_anomaly_degree(pca):
+ #   """
+  #  Compute the anomaly degree of each epoch based on the maximum ratio between the absolute deviation and the median
+   # absolute deviation among all principal vectors V_n. This is used to identify anomalous observations.
 
-    Returns:
-        numpy.ndarray: An array of size (n_epochs,) containing the anomaly degree of each epoch.
-    """
+    #Parameters:
+     #   pca (WPCA): A fitted wPCA model containing principal components.
+
+#    Returns:
+ #       numpy.ndarray: An array of size (n_epochs,) containing the anomaly degree of each epoch.
+  #  """
     # Initialize distance_mad array to store the ratio of absolute deviation to median absolute deviation
-    distance_mad = np.zeros((pca.components_.shape[1], pca.components_.shape[0]))
+   # distance_mad = np.zeros((pca.components_.shape[1], pca.components_.shape[0]))
 
-    for idx in range(pca.components_.shape[0]):
+    #for idx in range(pca.components_.shape[0]):
         # Calculate MAD of current component
-        madv = wapiti_tools.mad(pca.components_[idx])
+     #   madv = wapiti_tools.mad(pca.components_[idx])
         # Calculate absolute deviation of current component
-        ad = wapiti_tools.absolute_deviation(pca.components_[idx])
+      #  ad = wapiti_tools.absolute_deviation(pca.components_[idx])
         # Store ratio of absolute deviation to median absolute deviation
-        distance_mad[:, idx] = ad/madv
+       # distance_mad[:, idx] = ad/madv
 
     # Get the maximum value of the distance_mad array along the rows
-    D = np.max(distance_mad, axis=1)
+#    D = np.max(distance_mad, axis=1)
 
-    return D
+ #   return D
 
 
-def find_optimal_rejection(D, time_binned, rvs_binned, drvs_binned, frequency, n_components, regularization=0, threshold = 10):
-    """
-    This function computes the false alarm probabilities (FAPs) for each set of RV data after removing epochs one by one,
-    sorted in decreasing order of their anomaly degree D.
+#def find_optimal_rejection(D, time_binned, rvs_binned, drvs_binned, frequency, n_components, regularization=0, threshold = 10):
+ #   """
+  #  This function computes the false alarm probabilities (FAPs) for each set of RV data after removing epochs one by one,
+   # sorted in decreasing order of their anomaly degree D.
 
-    Args:
-    - D: array of anomaly degree
-    - time_binned: array of binned time values
-    - rvs_binned: array of binned RV values
-    - drvs_binned: array of binned RV uncertainty values
-    - frequency: array of angular frequencies at which to compute the Lomb-Scargle periodogram
-    - n_components: number of principal components to retain for the WPCA analysis (default=20)
+    #Args:
+#    - D: array of anomaly degree
+ #   - time_binned: array of binned time values
+  #  - rvs_binned: array of binned RV values
+   # - drvs_binned: array of binned RV uncertainty values
+    #- frequency: array of angular frequencies at which to compute the Lomb-Scargle periodogram
+#    - n_components: number of principal components to retain for the WPCA analysis (default=20)
 
-    Returns:
-    - faps: array of FAPs for each set of RV data after removing epochs one by one
-    """
+ #   Returns:
+  #  - faps: array of FAPs for each set of RV data after removing epochs one by one
+   # """
 
     # Sort the epochs by decreasing D value
-    index_sort = np.argsort(D)[::-1]
+    #index_sort = np.argsort(D)[::-1]
 
-    faps = []
-    d_idx = 0
-    while D[index_sort][d_idx] >= threshold:
+#    faps = []
+ #   d_idx = 0
+  #  while D[index_sort][d_idx] >= threshold:
         # Remove the epoch with the highest D value
-        time_used = np.delete(time_binned, index_sort[:d_idx+1])
-        rvs_used = np.copy(rvs_binned)
-        drvs_used = np.copy(drvs_binned)
-        rvs_used = np.delete(rvs_used, index_sort[:d_idx+1], axis=0)
-        drvs_used = np.delete(drvs_used , index_sort[:d_idx+1], axis=0)
-        rvs_used = rvs_used.T
-        drvs_used = drvs_used.T
+   #     time_used = np.delete(time_binned, index_sort[:d_idx+1])
+    #    rvs_used = np.copy(rvs_binned)
+     #   drvs_used = np.copy(drvs_binned)
+      #  rvs_used = np.delete(rvs_used, index_sort[:d_idx+1], axis=0)
+       # drvs_used = np.delete(drvs_used , index_sort[:d_idx+1], axis=0)
+        #rvs_used = rvs_used.T
+#        drvs_used = drvs_used.T
 
         # Compute the weighted average and variance of the remaining RV data
-        ma_rvs = np.ma.MaskedArray((rvs_used), mask=np.isnan((rvs_used)))
-        ma_drvs = np.ma.MaskedArray((drvs_used), mask=np.isnan((drvs_used)))
-        average = np.ma.average(ma_rvs, weights=1/ma_drvs**2, axis=1)
-        variance = np.ma.average((ma_rvs-average.reshape(-1, 1))**2, weights=1/ma_drvs**2, axis=1)
-        mean_X = average.data.reshape(-1, 1)
-        std_X = np.sqrt(variance.data.reshape(-1, 1))
+ #       ma_rvs = np.ma.MaskedArray((rvs_used), mask=np.isnan((rvs_used)))
+  #      ma_drvs = np.ma.MaskedArray((drvs_used), mask=np.isnan((drvs_used)))
+   #     average = np.ma.average(ma_rvs, weights=1/ma_drvs**2, axis=1)
+    #    variance = np.ma.average((ma_rvs-average.reshape(-1, 1))**2, weights=1/ma_drvs**2, axis=1)
+     #   mean_X = average.data.reshape(-1, 1)
+      #  std_X = np.sqrt(variance.data.reshape(-1, 1))
 
         # Normalize the RVs and RV uncertainties
-        rv = (np.copy(rvs_used)-mean_X)/std_X
-        drv = np.copy(drvs_used)/std_X
+       # rv = (np.copy(rvs_used)-mean_X)/std_X
+        #drv = np.copy(drvs_used)/std_X
 
         # Compute weights for the RVs based on the normalized RV uncertainties
-        weights = 1. / drv
-        weights[np.isnan(rv)] = 0
+#        weights = 1. / drv
+ #       weights[np.isnan(rv)] = 0
 
         # Fit a WPCA model to the normalized RVs and weights
-        pca_0 = WPCA(n_components=n_components)
-        pca_0.regularization = regularization
-        pca_0.fit(rv, weights=weights)
-        wpca_model = pca_0.reconstruct(rv, weights=weights)
+  #      pca_0 = WPCA(n_components=n_components)
+   #     pca_0.regularization = regularization
+    #    pca_0.fit(rv, weights=weights)
+     #   wpca_model = pca_0.reconstruct(rv, weights=weights)
 
-        rv_0, std_rv_0 = [], []
-        for idx in tqdm(range(len(time_used)), leave=False):
-            rv_temp, std_rv_temp = odd_ratio_mean(rvs_used.T[idx], drvs_used.T[idx])
-            rv_0.append(rv_temp)
-            std_rv_0.append(std_rv_temp)
-        rv_0, std_rv_0 = np.array(rv_0), np.array(std_rv_0)
+      #  rv_0, std_rv_0 = [], []
+       # for idx in tqdm(range(len(time_used)), leave=False):
+        #    rv_temp, std_rv_temp = odd_ratio_mean(rvs_used.T[idx], drvs_used.T[idx])
+         #   rv_0.append(rv_temp)
+          #  std_rv_0.append(std_rv_temp)
+#        rv_0, std_rv_0 = np.array(rv_0), np.array(std_rv_0)
 
-        average, std = odd_ratio_mean(rv_0, std_rv_0)
+ #       average, std = odd_ratio_mean(rv_0, std_rv_0)
 
-        wpca_model = pca_0.reconstruct([(rv_0 - average)/std], weights=[std/std_rv_0])
+  #      wpca_model = pca_0.reconstruct([(rv_0 - average)/std], weights=[std/std_rv_0])
 
-        rv_wapiti = (((rv_0 - average)/std - wpca_model)*std + average)[0]
-        std_rv_wapiti = std_rv_0
+   #     rv_wapiti = (((rv_0 - average)/std - wpca_model)*std + average)[0]
+    #    std_rv_wapiti = std_rv_0
 
         # LombScargle
-        ls = LombScargle(time_used, rv_wapiti, std_rv_wapiti)
-        power = ls.power(frequency)
-        fap = ls.false_alarm_probability(power.max())
-        faps.append(fap)
+     #   ls = LombScargle(time_used, rv_wapiti, std_rv_wapiti)
+      #  power = ls.power(frequency)
+       # fap = ls.false_alarm_probability(power.max())
+        #faps.append(fap)
 
-        d_idx += 1
+#        d_idx += 1
 
-    faps = np.array(faps)
+ #   faps = np.array(faps)
 
-    return faps
+  #  return faps
 
 def odd_ratio_mean(value, err, odd_ratio=1e-4, nmax=10):
     # Vectorized implementation of odd_ratio_mean
@@ -401,36 +410,22 @@ def main_loop(target, template, prot):
 
     pca_d2v = run_PCA(d2vs_used, dd2vs_used)
     outliers = ind_outliers(pca_d2v.components_[0], initial_mad_rejection)
-    outloop = 0
-    while len(outliers)>=1 and outloop < looplier :
-        if chatty:
-            print("         Outlier spotted... Removing ")
-        D = compute_anomaly_degree(pca_d2v)
-        faps = find_optimal_rejection(D, time_used, d2vs_used, dd2vs_used, frequency, n_components = n_component_rejection, threshold = initial_mad_rejection-(outloop/2))
-        if chatty:
-            print(f'The signal is the most significant when removing the {np.argmin(faps)+1} observations of highest D with a log fap of {np.log10(np.min(faps)):.2f}')
-
-
-        index_sort = np.argsort(D)[::-1]
-        optimal_indx = np.argmin(faps)
-        time_used = np.delete(time_used, index_sort[:optimal_indx+1])
-        berv_used = np.delete(berv_used, index_sort[:optimal_indx+1])
-        # Mask the copies of the arrays using the mask
-        d2vs_used = np.delete(np.copy(d2vs_used), index_sort[:optimal_indx+1], axis=0)
-        dd2vs_used = np.delete(np.copy(dd2vs_used) , index_sort[:optimal_indx+1], axis=0)
-        pca_d2v = run_PCA(d2vs_used, dd2vs_used)
-
-        outloop += 1
-        outliers = ind_outliers(pca_d2v.components_[0], initial_mad_rejection-(outloop/2))
-
-    # two step filtering method
-        # step 1 pacmap
+    if len(outliers)>=1 and chatty:
+        print("         Outlier spotted... Removing outliers", len(outliers))
+    time_out = np.delete(np.copy(time_used), outliers)
+    berv_out = np.delete(np.copy(berv_used), outliers)
+    # Mask the copies of the arrays using the mask
+    d2v_out = np.delete(np.copy(d2vs_used), outliers, axis=0)
+    sd2v_out = np.delete(np.copy(dd2vs_used) , outliers, axis=0)
+    pca_d2v = run_PCA(d2v_out, sd2v_out)
 
     if chatty:
-        f, p = LombScargle(time_used, pca_d2v.components_[0]).autopower(minimum_frequency=0.0005, maximum_frequency=1/1.5) #nyquist_factor=15)7
-        ls = LombScargle(time_used, pca_d2v.components_[0])
+        f, p = LombScargle(time_out, pca_d2v.components_[0]).autopower(minimum_frequency=0.0005, maximum_frequency=1/1.5) #nyquist_factor=15)7
+        ls = LombScargle(time_out, pca_d2v.components_[0])
         Prow = p[np.argmin(np.abs(f - 1/prot))]
         print('         Before filtering W1 Prot fap ', np.log(ls.false_alarm_probability(Prow)))
+    # two step filtering method
+        # step 1 pacmap
         print('     run PacMap')
     PacMap_map, max_f, max_p, max_fp = run_pacmap(d2vs_used, dd2vs_used, time_used, target)
 
@@ -450,7 +445,7 @@ def main_loop(target, template, prot):
         fig, axes = plt.subplots( 1, 1, figsize=(16, 10))
         axes.scatter(PacMap_map[:,0], PacMap_map[:,1], c='k', alpha = 0.05)
         plot_decision_function(clf_weights, sample_weight, axes, target, PacMap_split, class_id, size_split)
-        plt.savefig(cwd+"/out/" + target + "SVM.pdf", format="pdf", bbox_inches="tight")
+        plt.savefig(cwd+"/out_SPCAndie/" + target + "SVM.pdf", format="pdf", bbox_inches="tight")
         #plt.ion()
 
     d2v_filtr  = d2vs_used.T[predicted_class == 0].T
@@ -461,20 +456,31 @@ def main_loop(target, template, prot):
         print('     filtered PCA')
     # run the PCA on the filtered lines
     pca_filtr = run_PCA(d2v_filtr, sd2v_filtr)
+
+    outliers = ind_outliers(pca_filtr.components_[0], initial_mad_rejection)
+    if len(outliers)>=1 and chatty:
+        print("         Outlier spotted... Removing outliers", len(outliers))
+    time_filtr = np.delete(np.copy(time_used), outliers)
+    berv_filtr = np.delete(np.copy(berv_used), outliers)
+    # Mask the copies of the arrays using the mask
+    d2v_filtr = np.delete(np.copy(d2v_filtr), outliers, axis=0)
+    sd2v_filtr = np.delete(np.copy(sd2v_filtr) , outliers, axis=0)
+    pca_filtr = run_PCA(d2v_filtr, sd2v_filtr)
+
     if plotty:
         fig, ax = plt.subplots(1, 3, figsize=(20, 5))
-        ax[0].plot(time_used, pca_d2v.components_[0], 'ro', alpha=0.7)
-        ax[0].plot(time_used, pca_filtr.components_[0], 'bo')
+        ax[0].plot(time_out, pca_d2v.components_[0], 'ro', alpha=0.7)
+        ax[0].plot(time_filtr, pca_filtr.components_[0], 'bo')
         ax[0].set_ylabel(f'W {1}', size=12, weight='bold')
         # Set the x-axis label
         ax[0].set_xlabel('Time [BJD]', size=12, weight='bold')
-        f, p = LombScargle(time_used, pca_filtr.components_[0]).autopower(minimum_frequency=1/2000, maximum_frequency=1/1.5) #nyquist_factor=15)
+        f, p = LombScargle(time_filtr, pca_filtr.components_[0]).autopower(minimum_frequency=1/2000, maximum_frequency=1/1.5) #nyquist_factor=15)
         ax[1].plot(1/f, p, 'b', label='Filtered')
-        f, p = LombScargle(time_used, pca_d2v.components_[0]).autopower(minimum_frequency=1/2000, maximum_frequency=1/1.5) #nyquist_factor=15)
+        f, p = LombScargle(time_out, pca_d2v.components_[0]).autopower(minimum_frequency=1/2000, maximum_frequency=1/1.5) #nyquist_factor=15)
         ax[1].plot(1/f, p, 'r', alpha=0.7, label='Not filtered')
         ax[1].set_ylabel("power")
         ax[1].set_xscale('log')
-        ls = LombScargle(time_used, pca_filtr.components_[0])
+        ls = LombScargle(time_filtr, pca_filtr.components_[0])
         fap = ls.false_alarm_level(0.1)
         ax[1].axhline(fap, linestyle='-', color='k')
         fap = ls.false_alarm_level(0.01)
@@ -485,43 +491,32 @@ def main_loop(target, template, prot):
         ax[1].set_xlabel('Period [d]', size=12, weight='bold')
         ax[1].set_ylabel('Power', size=12, weight='bold')
         ax[1].legend()
-        ax[2].plot(berv_used, pca_d2v.components_[0], 'ro', alpha=0.7)
-        ax[2].plot(berv_used, pca_filtr.components_[0], 'bo')
+        ax[2].plot(berv_out, pca_d2v.components_[0], 'ro', alpha=0.7)
+        ax[2].plot(berv_filtr, pca_filtr.components_[0], 'bo')
         ax[2].set_ylabel(f'W {1}', size=12, weight='bold')
         # Set the x-axis label
         ax[2].set_xlabel('BERV [km/s]', size=12, weight='bold')
         # Set the font size of the tick labels
         ax[2].tick_params(labelsize=12)
-        plt.savefig(cwd+"/out/" + target + "W1.pdf", format="pdf", bbox_inches="tight")
+        plt.savefig(cwd+"/out_SPCAndie/" + target + "W1.pdf", format="pdf", bbox_inches="tight")
         #plt.ion()
     if chatty:
-        f, p = LombScargle(time_used, pca_filtr.components_[0]).autopower(minimum_frequency=1/2000, maximum_frequency=1/1.5)
-        ls = LombScargle(time_used, pca_filtr.components_[0])
+        f, p = LombScargle(time_filtr, pca_filtr.components_[0]).autopower(minimum_frequency=1/2000, maximum_frequency=1/1.5)
+        ls = LombScargle(time_filtr, pca_filtr.components_[0])
         Prow = p[np.argmin(np.abs(f - 1/prot))]
         print('         After filtering W1 Prot fap ', np.log(ls.false_alarm_probability(Prow)))
 
         print('exiting ' + target + ' s loop')
 
-    return(time_used, pca_filtr)
+    return(time_filtr, pca_filtr)
 
 
 ## Main
 
-
 for i in range(len(Target)):
     try :
         time, pca_after = main_loop(Target[i], Template[i], Prot[i])
-        np.save(cwd+"/out/" + Target[i] + "W1.npy", np.array([time, pca_after.components_[0]]))
+        np.save(cwd+"/out_SPCAndie/" + Target[i] + "W1.npy", np.array([time, pca_after.components_[0]]))
         gc.collect()
-    except:
-        pass
-
-
-
-
-
-
-
-
-
-
+    except Exception as e:
+        print(e)
